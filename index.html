@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MP - Iniciativa</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="round-counter">
+                <span>Rodada:</span>
+                <span id="roundNumber">0</span>
+            </div>
+            <h1>Combate Mundos Perdidos</h1>
+        </div>
+        
+        <div class="form-container">
+            <input type="text" id="characterName" placeholder="Nome do Personagem">
+            <input type="number" id="initiativeBonus" placeholder="Bônus de Iniciativa">
+            <select id="characterType">
+                <option value="player">Jogador</option>
+                <option value="monster">Monstro</option>
+            </select>
+            <button onclick="addCharacter()">Adicionar</button>
+        </div>
+
+        <div class="initiative-list">
+            <h2>Personagens</h2>
+            <div id="characterList"></div>
+        </div>
+
+        <div class="controls">
+            <button onclick="startCombat()" class="start-combat">Iniciar Combate</button>
+            <button onclick="nextTurn()" class="next-turn">Próximo Turno</button>
+            <button onclick="resetInitiative()" class="reset">Reiniciar Combate</button>
+        </div>
+
+        <div class="data-controls">
+            <button onclick="exportData()" class="export">Exportar Dados</button>
+            <button onclick="importData()" class="import">Importar Dados</button>
+            <input type="file" id="importFile" accept=".json" style="display: none;" onchange="handleImport(event)">
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html> 
