@@ -2,6 +2,25 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Regras para a coleção 'users'
+    match /users/{userId} {
+      // Permite que o usuário autenticado leia e atualize seu próprio documento.
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+
+      // Permite que o usuário autenticado crie seu próprio documento,
+      // validando o email e o timestamp de criação.
+      allow create: if request.auth != null && request.auth.uid == userId
+                      && request.resource.data.email == request.auth.token.email
+                      && request.resource.data.createdAt == request.time;
+                      // Lembre-se de adicionar validações para lgpdConsent aqui, se aplicável no momento da criação.
+
+      // A deleção de perfil de usuário geralmente é um processo mais controlado,
+      // muitas vezes via Cloud Functions para limpar dados associados.
+      allow delete: if false;
+    }
+
+    // Bloqueia por padrão qualquer acesso a outras coleções não especificadas.
     match /{document=**} {
       allow read, write: if false;
     }
