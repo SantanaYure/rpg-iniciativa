@@ -3,24 +3,55 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Regras para a coleção 'users'
-    match /users/{userId} {
-      // Permite que o usuário autenticado leia e atualize seu próprio documento.
-      allow read, update: if request.auth != null && request.auth.uid == userId;
+    // --- Funções Auxiliares ---
+    // Verifica se o usuário está autenticado.
+    function isAuthenticated() {
+      return request.auth != null;
+    }
 
-      // Permite que o usuário autenticado crie seu próprio documento,
-      // validando o email e o timestamp de criação.
-      allow create: if request.auth != null && request.auth.uid == userId
+    // Verifica se o usuário autenticado é o dono do documento existente (para read, update, delete).
+    // 'docResource' é o documento como ele existe no banco.
+    function isResourceOwner(docResource) {
+      return isAuthenticated() && docResource.data.userId == request.auth.uid;
+    }
+
+    // Verifica se o usuário autenticado está criando um documento como seu proprietário (para create).
+    // 'docRequestResource' é o documento como ele seria após a criação.
+    function isCreatingAsOwner(docRequestResource) {
+      return isAuthenticated() && docRequestResource.data.userId == request.auth.uid;
+    }
+
+    // --- Regras para a coleção 'users' ---
+    match /users/{userId} {
+      allow read, update: if isAuthenticated() && request.auth.uid == userId;
+      allow create: if isAuthenticated() && request.auth.uid == userId
                       && request.resource.data.email == request.auth.token.email
                       && request.resource.data.createdAt == request.time;
-                      // Lembre-se de adicionar validações para lgpdConsent aqui, se aplicável no momento da criação.
-
-      // A deleção de perfil de usuário geralmente é um processo mais controlado,
-      // muitas vezes via Cloud Functions para limpar dados associados.
       allow delete: if false;
     }
 
+    // --- Regras para a coleção 'combats' ---
+    match /combats/{combatId} {
+      // Permite leitura, atualização e deleção apenas para o dono do combate.
+      allow read, delete: if isResourceOwner(resource); // 'resource' é o documento existente
+
+      // Permite criação se o usuário estiver autenticado e se definindo como dono,
+      // e valida os timestamps e a existência da lista de participantes.
+      allow create: if isCreatingAsOwner(request.resource) // 'request.resource' são os dados do novo doc
+                      && request.resource.data.createdAt == request.time
+                      && request.resource.data.updatedAt == request.time
+                      && request.resource.data.participants is list; // Exemplo de validação de campo
+
+      // Permite atualização para o dono, garantindo que o userId não mude
+      // e que o timestamp de atualização seja definido.
+      allow update: if isResourceOwner(resource)
+                      && request.resource.data.userId == resource.data.userId // Garante que userId não foi alterado
+                      && request.resource.data.updatedAt == request.time;
+    }
+
     // Bloqueia por padrão qualquer acesso a outras coleções não especificadas.
+    // Esta regra é importante para garantir que qualquer nova coleção que você criar
+    // não fique acidentalmente aberta.
     match /{document=**} {
       allow read, write: if false;
     }
